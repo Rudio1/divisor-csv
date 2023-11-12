@@ -3,42 +3,51 @@ from tkinter import filedialog
 import pandas as pd
 import chardet
 
+global arquivoIsSelect
+
 def get_csv_encoding(file_path):
     with open(file_path, 'rb') as f:
         result = chardet.detect(f.read())
     return result['encoding']
 
 def dividir_arquivo(input_path, chunk_size, entry_path_label, success_label):
-    try:
-        encoding = get_csv_encoding(input_path)
-        df = pd.read_csv(input_path, delimiter=';', encoding=encoding)
+    global arquivoIsSelect
+    if arquivoIsSelect:
+        try:
+            encoding = get_csv_encoding(input_path)
+            df = pd.read_csv(input_path, delimiter=';', encoding=encoding)
 
-        chunk_size = 5999
-        chunks = [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
+            chunk_size = 5999
+            chunks = [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
 
-        for i, chunk in enumerate(chunks):
-            chunk.to_csv(f'Arquivo_formatado_{i + 1}.csv', index=False, sep=';')
+            for i, chunk in enumerate(chunks):
+                chunk.to_csv(f'Arquivo_formatado_{i + 1}.csv', index=False, sep=';')
 
-        entry_path_label.config(text="", fg="black")
-        success_message = f'{len(chunks)} arquivos criados com sucesso.'
-        print("Concluído")
-        success_label.config(text=success_message, fg="green")
-    except pd.errors.ParserError as e:
-        with open(input_path, 'r', encoding='utf-16') as file:
-            lines = file.readlines()
-            print(lines)
-        entry_path_label.config(text="ERRO: Não foi possível determinar a codificação correta do arquivo.", fg="red")
-        print("Aqui")
-        success_label.config(text="", fg="black")
+            entry_path_label.config(text="", fg="black")
+            success_message = f'{len(chunks)} arquivos criados com sucesso.'
+            success_label.config(text=success_message, fg="green")
+        except pd.errors.ParserError as e:
+            with open(input_path, 'r', encoding='utf-16') as file:
+                lines = file.readlines()
+                entry_path_label.config(text="ERRO:" + lines, fg="red")
+            entry_path_label.config(text="ERRO: Não foi possível determinar a codificação correta do arquivo.", fg="red")
+            success_label.config(text="", fg="black")
+    else:
+        entry_path_label.config(text="ERRO: Selecione pelo menos um arquivo para realizar a divisão", fg="red")
+
 
 def selecionar_arquivo(entry_path_label, success_label):
+    global arquivoIsSelect
     file_path = filedialog.askopenfilename(filetypes=[("Arquivos CSV", "*.csv")])
     entry_path_label.config(text="")
     entry_path_label.delete(0, tk.END)
     entry_path_label.insert(0, file_path)
     success_label.config(text="", fg="black")
+    arquivoIsSelect = True
 
 def criar_app():
+    global arquivoIsSelect
+    arquivoIsSelect = False
     app = tk.Tk()
     app.title("Divisor de Arquivos CSV - Importador de Histórico")
     label_instrucoes = tk.Label(app, text="Selecione o arquivo CSV a ser dividido:")
